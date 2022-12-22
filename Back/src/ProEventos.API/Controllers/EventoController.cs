@@ -1,9 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.Extensions.Logging;
+using Microsoft.EntityFrameworkCore;
+using ProEventos.API.Data;
 using ProEventos.API.Models;
 
 namespace ProEventos.API.Controllers
@@ -12,11 +12,13 @@ namespace ProEventos.API.Controllers
     [Route("api/evento")]
     public class EventoController : ControllerBase
     {
-        public EventoController(){}
-       
+        private readonly DataContext _context;
+        public EventoController(DataContext context){
+            _context = context;
+        }
 
         [HttpGet("health")]
-        public async Task<IActionResult> CheckHealth()
+        public async Task<IActionResult> HealthCheck()
         {
             return await Task.Run(() => {
                 return Ok("The Event API is running!!!");
@@ -24,20 +26,22 @@ namespace ProEventos.API.Controllers
         }
 
         [HttpGet]
-        public async Task<IActionResult> Get()
+        public async Task<IActionResult> ListAll()
         {
-           return Ok(await ListarEventos());
+           return await Task.Run(() => {
+                return Ok(_context.Eventos);
+           });
         }
 
         [HttpGet("{id:int}")]
-        public async Task<IActionResult> Get(int id)
+        public async Task<IActionResult> GetById(int id)
         {
-            var eventos = await ListarEventos();
-            var evento = eventos.Where(e => e.EventoId == id).FirstOrDefault();
-            if(evento != null)  return Ok(evento);  
+            var eventos = _context.Eventos;
+            var evento = await eventos.FirstOrDefaultAsync(e => e.EventoId == id);
+            
+            if(evento == null) return NotFound();
 
-            return NotFound(); 
-                  
+            return Ok(evento);   
         }
 
         [HttpPost]
